@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>가을 체험학습 포토빙고</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti for Bingo Celebration -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap');
+        
+        body {
+            font-family: 'Gowun Dodum', sans-serif;
+            background-color: #fbf8f3;
+        }
+        
+        .font-jua {
+            font-family: 'Jua', sans-serif;
+        }
+
+        .bingo-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.75rem;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d4a373;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col justify-between">
+
+    <!-- Header -->
+    <header class="bg-amber-800 text-white shadow-md sticky top-0 z-40">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i data-lucide="camera" class="w-7 h-7 text-amber-300"></i>
+                <h1 class="text-xl sm:text-2xl font-bold font-jua tracking-wide">가을 체험학습 포토빙고</h1>
+            </div>
+            
+            <div id="user-nav" class="flex items-center space-x-2 text-sm">
+                <!-- User info & login/logout dynamically rendered -->
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-4xl mx-auto w-full px-3 py-4 flex-grow">
+
+        <!-- Login Modal / Screen -->
+        <div id="login-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 text-center transform transition-all border-4 border-amber-200">
+                <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-700">
+                    <i data-lucide="map-pin" class="w-8 h-8"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-amber-900 font-jua mb-2">체험학습 포토빙고 시작하기</h2>
+                <p class="text-amber-700 text-sm mb-6">학번과 이름을 입력하고 미션 도전을 시작해 보세요!</p>
+                
+                <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4 text-left">
+                    <div>
+                        <label class="block text-xs font-bold text-amber-900 mb-1">학번 (예: 1101 - 1학년 1반 1번 / 1728 - 1학년 7반 28번)</label>
+                        <input type="number" id="student-id" required placeholder="예: 1101, 1305, 1412, 1728" 
+                            class="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition text-base">
+                        <p class="text-xs text-amber-600 mt-1">* 참가 대상: 1반, 3반, 4반, 7반</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-amber-900 mb-1">이름 (예: 홍길동, 강민서...)</label>
+                        <input type="text" id="student-name" required placeholder="예: 홍길동" 
+                            class="w-full px-4 py-3 border-2 border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition text-base">
+                    </div>
+                    
+                    <button type="submit" 
+                        class="w-full py-3.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-lg transition transform active:scale-95 font-jua text-lg flex items-center justify-center gap-2">
+                        <i data-lucide="sparkles" class="w-5 h-5"></i> 입장하기
+                    </button>
+                </form>
+
+                <div class="mt-4 pt-3 border-t border-slate-100 text-center">
+                    <button onclick="openTeacherAuthModal()" class="text-xs text-amber-800 underline hover:text-amber-900 font-medium">
+                        👩‍🏫 선생님 전용 관리자 접속
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Teacher Password Modal -->
+        <div id="teacher-auth-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center border-2 border-amber-200">
+                <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3 text-amber-700">
+                    <i data-lucide="lock" class="w-6 h-6"></i>
+                </div>
+                <h3 class="text-xl font-bold text-amber-900 font-jua mb-1">선생님 관리자 인증</h3>
+                <p class="text-xs text-amber-700 mb-4">선생님 비밀번호를 입력해 주세요.</p>
+                <form onsubmit="handleTeacherLogin(event)" class="space-y-3">
+                    <input type="password" id="teacher-password" placeholder="비밀번호 입력" required
+                        class="w-full px-4 py-2.5 border-2 border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-center font-bold text-lg">
+                    <div class="flex gap-2">
+                        <button type="button" onclick="closeTeacherAuthModal()" class="w-1/2 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-sm font-jua">취소</button>
+                        <button type="submit" class="w-1/2 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-sm font-jua shadow">확인</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div id="nav-tabs-container" class="flex border-b border-amber-200 mb-4 bg-amber-50/50 p-1 rounded-xl">
+            <button id="tab-bingo-btn" onclick="switchTab('bingo')" 
+                class="flex-1 py-2.5 px-3 text-center rounded-lg font-bold text-sm transition flex items-center justify-center gap-1.5 bg-amber-600 text-white shadow">
+                <i data-lucide="grid" class="w-4 h-4"></i> 나의 빙고판
+            </button>
+            <button id="tab-padlet-btn" onclick="switchTab('padlet')" 
+                class="flex-1 py-2.5 px-3 text-center rounded-lg font-bold text-sm text-amber-800 hover:bg-amber-100/50 transition flex items-center justify-center gap-1.5">
+                <i data-lucide="layout-grid" class="w-4 h-4"></i> 모두의 담벼락
+            </button>
+            <button id="tab-teacher-btn" onclick="switchTab('teacher')" 
+                class="flex-1 py-2.5 px-3 text-center rounded-lg font-bold text-sm text-amber-800 hover:bg-amber-100/50 transition flex items-center justify-center gap-1.5">
+                <i data-lucide="clipboard-check" class="w-4 h-4"></i> 교사 관리 시스템
+            </button>
+        </div>
+
+        <!-- VIEW 1: BINGO GRID -->
+        <div id="view-bingo" class="space-y-4">
+            
+            <!-- Bingo Status Banner -->
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 rounded-2xl p-4 text-white shadow-lg flex justify-between items-center">
+                <div>
+                    <span id="bingo-user-badge" class="bg-white/20 px-2.5 py-1 rounded-full text-xs font-medium backdrop-blur-sm">학생 정보 입력 필요</span>
+                    <h2 class="text-xl font-bold font-jua mt-1">3줄 빙고에 도전하세요! 🍂</h2>
+                </div>
+                <div class="text-right bg-white/20 px-3 py-2 rounded-xl backdrop-blur-sm">
+                    <div class="text-xs font-medium text-amber-100">완성한 빙고</div>
+                    <div id="bingo-lines-count" class="text-2xl font-black font-jua text-yellow-300">0 줄</div>
+                </div>
+            </div>
+
+            <!-- Bingo Board -->
+            <div class="bg-amber-100/60 p-3 sm:p-4 rounded-2xl border-2 border-amber-300/60 shadow-inner">
+                <div id="bingo-board" class="bingo-grid">
+                    <!-- 9 Bingo tiles will be dynamically rendered here -->
+                </div>
+            </div>
+
+            <!-- Notice -->
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 flex items-start gap-2">
+                <i data-lucide="info" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5"></i>
+                <p>각 미션 칸을 누르면 사진을 찍거나 업로드할 수 있습니다. 사진을 등록하면 빙고 도장이 찍힙니다!</p>
+            </div>
+        </div>
+
+        <!-- Hidden File Input for uploading photos -->
+        <input type="file" id="bingo-photo-input" accept="image/*" capture="environment" class="hidden" onchange="handlePhotoUpload(event)">
+
+        <!-- VIEW 2: PADLET WALL -->
+        <div id="view-padlet" class="hidden space-y-4">
+            <div class="bg-white p-4 rounded-2xl border border-amber-200 shadow-sm space-y-3">
+                <div class="flex flex-col sm:flex-row gap-2 justify-between items-stretch sm:items-center">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="filter" class="w-4 h-4 text-amber-600"></i>
+                        <span class="font-bold text-sm text-amber-900">제출작 보기 필터</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <!-- Class Filter -->
+                        <select id="filter-class" onchange="renderPadlet()" 
+                            class="bg-amber-50 border border-amber-300 rounded-lg px-3 py-1.5 text-xs font-bold text-amber-900 outline-none focus:ring-2 focus:ring-amber-500">
+                            <option value="all">전체 반 보기</option>
+                        </select>
+
+                        <!-- Mission Filter -->
+                        <select id="filter-mission" onchange="renderPadlet()" 
+                            class="bg-amber-50 border border-amber-300 rounded-lg px-3 py-1.5 text-xs font-bold text-amber-900 outline-none focus:ring-2 focus:ring-amber-500">
+                            <option value="all">전체 미션 보기</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Padlet Cards Grid -->
+            <div id="padlet-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                <!-- Submission cards will be rendered here -->
+            </div>
+        </div>
+
+        <!-- VIEW 3: TEACHER MANAGEMENT DASHBOARD -->
+        <div id="view-teacher" class="hidden space-y-4">
+            
+            <!-- Dashboard Summary Header -->
+            <div class="bg-slate-800 text-white p-4 rounded-2xl shadow-md space-y-3">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                    <div>
+                        <h2 class="text-xl font-bold font-jua text-amber-300 flex items-center gap-2">
+                            <i data-lucide="clipboard-check" class="w-5 h-5"></i> 교사 현황 관리 시스템
+                        </h2>
+                        <p class="text-xs text-slate-300 mt-0.5">참가 학급(1, 3, 4, 7반) 학생들의 제출 현황과 빙고 달성을 확인합니다.</p>
+                    </div>
+                    <div class="flex gap-2 w-full sm:w-auto">
+                        <button onclick="downloadCSV()" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition shadow">
+                            <i data-lucide="download" class="w-4 h-4"></i> 엑셀(CSV) 다운로드
+                        </button>
+                        <button onclick="openRosterModal()" class="flex-1 sm:flex-none bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition shadow">
+                            <i data-lucide="user-plus" class="w-4 h-4"></i> 명단 편집
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Class Filter Buttons -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-700">
+                    <button onclick="selectTeacherClass('1')" id="btn-tclass-1" class="tclass-btn py-2 px-3 rounded-xl bg-amber-600 text-white text-xs font-bold transition text-center">
+                        1반 현황
+                    </button>
+                    <button onclick="selectTeacherClass('3')" id="btn-tclass-3" class="tclass-btn py-2 px-3 rounded-xl bg-slate-700 text-white text-xs font-bold hover:bg-amber-600 transition text-center">
+                        3반 현황
+                    </button>
+                    <button onclick="selectTeacherClass('4')" id="btn-tclass-4" class="tclass-btn py-2 px-3 rounded-xl bg-slate-700 text-white text-xs font-bold hover:bg-amber-600 transition text-center">
+                        4반 현황
+                    </button>
+                    <button onclick="selectTeacherClass('7')" id="btn-tclass-7" class="tclass-btn py-2 px-3 rounded-xl bg-slate-700 text-white text-xs font-bold hover:bg-amber-600 transition text-center">
+                        7반 현황
+                    </button>
+                </div>
+            </div>
+
+            <!-- Roster & Submission Overview Table -->
+            <div class="bg-white rounded-2xl border border-amber-200 shadow-sm overflow-hidden">
+                <div class="p-3 bg-amber-50 border-b border-amber-200 flex justify-between items-center">
+                    <span id="teacher-current-class-title" class="font-bold text-amber-900 text-sm font-jua">
+                        📌 1반 학생 제출 현황
+                    </span>
+                    <span id="teacher-class-summary-badge" class="text-xs bg-amber-200 text-amber-900 px-2.5 py-1 rounded-full font-bold">
+                        제출율 0% (0/0명)
+                    </span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-700">
+                        <thead class="bg-slate-100 text-slate-600 uppercase text-[11px] border-b border-slate-200">
+                            <tr>
+                                <th class="py-3 px-3">학번/번호</th>
+                                <th class="py-3 px-3">이름</th>
+                                <th class="py-3 px-3 text-center">제출한 사진</th>
+                                <th class="py-3 px-3 text-center">달성 빙고</th>
+                                <th class="py-3 px-3 text-center">상태</th>
+                                <th class="py-3 px-3 text-right">상세보기</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teacher-student-table-body" class="divide-y divide-slate-100">
+                            <!-- Student roster and stats will be rendered here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Roster Input Modal -->
+    <div id="roster-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 space-y-4 border-2 border-amber-200">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="font-bold text-amber-900 font-jua text-lg flex items-center gap-2">
+                    <i data-lucide="users" class="w-5 h-5 text-amber-600"></i> 학급 명단 입력 (1, 3, 4, 7반)
+                </h3>
+                <button onclick="closeRosterModal()" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
+                각 반의 학생 이름을 줄바꿈(엔터) 또는 쉼표(,)로 구분하여 입력해 주세요. 번호는 순서대로 자동 부여됩니다.
+            </p>
+
+            <div class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                <div>
+                    <label class="block text-xs font-bold text-amber-900 mb-1">1반 명단</label>
+                    <textarea id="roster-input-1" rows="3" class="w-full text-xs p-2.5 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-amber-900 mb-1">3반 명단</label>
+                    <textarea id="roster-input-3" rows="3" class="w-full text-xs p-2.5 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-amber-900 mb-1">4반 명단</label>
+                    <textarea id="roster-input-4" rows="3" class="w-full text-xs p-2.5 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-amber-900 mb-1">7반 명단</label>
+                    <textarea id="roster-input-7" rows="3" class="w-full text-xs p-2.5 border border-amber-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none"></textarea>
+                </div>
+            </div>
+
+            <button onclick="saveRosters()" class="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-sm font-jua shadow transition">
+                명단 저장 및 적용하기
+            </button>
+        </div>
+    </div>
+
+    <!-- Student Detail Inspection Modal -->
+    <div id="student-detail-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-5 space-y-4 border-2 border-amber-200 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-3">
+                <div>
+                    <span id="inspect-student-badge" class="bg-amber-100 text-amber-900 font-bold px-2 py-0.5 rounded text-xs">1반 05번</span>
+                    <h3 id="inspect-student-name" class="font-bold text-amber-900 font-jua text-xl inline ml-2">학생 이름</h3>
+                </div>
+                <button onclick="closeStudentDetailModal()" class="text-slate-400 hover:text-slate-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+
+            <div>
+                <h4 class="text-xs font-bold text-slate-500 mb-2">제출한 미션 사진 (총 <span id="inspect-photo-count">0</span>개)</h4>
+                <div id="inspect-grid" class="grid grid-cols-3 gap-2">
+                    <!-- Photo cards -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Detail Modal -->
+    <div id="detail-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4" onclick="closeDetailModal()">
+        <div class="max-w-md w-full bg-white rounded-2xl overflow-hidden shadow-2xl space-y-0" onclick="event.stopPropagation()">
+            <div class="relative bg-black aspect-square flex items-center justify-center">
+                <img id="detail-img" class="max-h-full max-w-full object-contain" src="" alt="확대된 사진">
+                <button onclick="closeDetailModal()" class="absolute top-3 right-3 bg-black/50 text-white p-1.5 rounded-full hover:bg-black/80">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-4 bg-white space-y-3">
+                <div class="flex justify-between items-center border-b pb-2">
+                    <div>
+                        <div id="detail-student" class="font-bold text-amber-900 text-base">학번 이름</div>
+                        <div id="detail-mission" class="text-xs text-amber-700 mt-0.5">미션 명</div>
+                    </div>
+                    <div id="detail-delete-btn-container"></div>
+                </div>
+
+                <!-- Like and Comment Section -->
+                <div class="flex items-center gap-3 text-sm">
+                    <button id="like-btn" onclick="toggleLikeCurrentPhoto()" class="flex items-center gap-1 text-rose-500 font-bold hover:scale-110 transition">
+                        <i data-lucide="heart" class="w-5 h-5 fill-rose-500"></i> <span id="like-count">0</span>
+                    </button>
+                    <span class="text-xs text-slate-400" id="detail-time">방금 전</span>
+                </div>
+
+                <!-- Comments List -->
+                <div class="space-y-2 border-t pt-2">
+                    <h5 class="text-xs font-bold text-slate-600">응원 댓글</h5>
+                    <div id="comments-list" class="max-h-32 overflow-y-auto space-y-1.5 text-xs">
+                        <!-- Dynamic comments -->
+                    </div>
+                    <form onsubmit="addComment(event)" class="flex gap-2 pt-1">
+                        <input type="text" id="comment-input" placeholder="댓글을 입력하세요..." required
+                            class="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-amber-500">
+                        <button type="submit" class="px-3 py-1.5 bg-amber-600 text-white rounded-lg font-bold text-xs hover:bg-amber-700">등록</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+<!-- ... existing code me... -->
+    <!-- JavaScript Logic -->
+    <script>
+        // 9 Bingo Missions Definition
+        const DEFAULT_MISSIONS = [
+            { id: 1, title: "가을에 어울리는 사진 찍기", icon: "🍁", desc: "단풍이나 가을 느낌 물씬 나는 풍경" },
+            { id: 2, title: "5명 이상 함께 사진 찍기", icon: "👥", desc: "친구들과 함께 브이!" },
+            { id: 3, title: "하트 모양 찾아 찍기", icon: "💖", desc: "자연 속이나 사물에서 하트 찾기" },
+            { id: 4, title: "물에 비친 풍경 찍기", icon: "🌊", desc: "의림지 호수에 반영된 멋진 풍경" },
+            { id: 5, title: "학급 단체사진 찍기", icon: "📸", desc: "우리 반 전체 다같이 찰칵" },
+            { id: 6, title: "가장 멋진 나무 찍기", icon: "🌳", desc: "의림지의 멋진 제비바위/소나무 등" },
+            { id: 7, title: "생명체 찍기", icon: "🌱", desc: "곤충, 잠자리, 새, 꽃 등 살아있는 것" },
+            { id: 8, title: "모두 점프한 사진 찍기", icon: "🏃", desc: "신나게 공중점프하는 순간!" },
+            { id: 9, title: "서로 다른 색깔 5개 찍기", icon: "🌈", desc: "빨강, 노랑, 초록, 갈색 등 5가지 색상" }
+        ];
+
+        const PRELOADED_ROSTERS = {
+            '1': [
+                "KHODJIEVA", "강준영", "권소원", "김율", "박선영", "박시울", "박예준", "박윤서", "박희수", "배하은",
+                "손시윤", "신유선", "안이수", "육혜은", "윤영채", "이수아", "이재준", "이제하", "정유준", "정주원",
+                "정휘광", "조은", "최다은", "최은설", "한지율", "함민우", "허도윤", "형다운"
+            ],
+            '3': [
+                "강민서", "강지우", "곽하윤", "김가민", "김도율", "김승윤", "김예은", "김지호", "김하윤", "남윤우",
+                "노현준", "박민준", "박서준", "박준혁", "반수연", "방서윤", "서지율", "심태림", "안효주",
+                "오채민", "이다희", "이예린", "임예린", "진서준", "최수지", "한승현", "황서윤"
+            ],
+            '4': [
+                "강예준", "권도현", "권수지", "김대윤", "김동인", "김수민", "김시영", "김연재", "김채린", "박혜윤",
+                "백준범", "송연우", "안유민", "오찬우", "원진아", "유가은", "이리은", "이서준", "이성민", "이슬이",
+                "이유빈", "이하진", "조서안", "최영우", "최지후", "최호영", "하윤서"
+            ],
+            '7': [
+                "강태욱", "고다현", "권이준", "김가연", "김동윤", "김보민", "김연서", "김준수", "김혜원", "나은솔",
+                "노윤성", "박시원", "박초현", "백아진", "성준서", "양현서", "유아루", "이동규", "이연호", "이준우",
+                "이채윤", "이하율", "전다혜", "정소윤", "정지아", "최아리", "한예서"
+            ]
+        };
+
+        let currentUser = null;
+        let currentActiveMissionId = null;
+        let allSubmissions = [];
+        let rosters = { ...PRELOADED_ROSTERS };
+        let currentTeacherClass = '1';
+        let currentDetailSubmission = null;
+        let previousBingoCount = 0;
+
+        function initMockSubmissions() {
+            const mockPhotos = [
+                { missionId: 1, url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&auto=format&fit=crop' },
+                { missionId: 3, url: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=500&auto=format&fit=crop' },
+                { missionId: 5, url: 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=500&auto=format&fit=crop' },
+                { missionId: 7, url: 'https://images.unsplash.com/photo-1530595467537-0b5996c41f2d?w=500&auto=format&fit=crop' },
+                { missionId: 9, url: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=500&auto=format&fit=crop' }
+            ];
+
+            mockPhotos.forEach(p => {
+                allSubmissions.push({
+                    id: Date.now() + p.missionId,
+                    studentId: '1101',
+                    studentName: 'KHODJIEVA',
+                    classNum: '1',
+                    num: 1,
+                    missionId: p.missionId,
+                    imageUrl: p.url,
+                    timestamp: '방금 전',
+                    likes: 3,
+                    likedUsers: [],
+                    comments: [{ author: '선생님', text: '멋진 가을 풍경이네요!' }]
+                });
+            });
+        }
+
+        function loadRostersFromStorage() {
+            const savedRosters = localStorage.getItem('bingo_rosters');
+            if (savedRosters) {
+                try { rosters = JSON.parse(savedRosters); } catch(e) {}
+            }
+        }
+
+        function loadState() {
+            const savedSubs = localStorage.getItem('bingo_all_submissions');
+            if (savedSubs) {
+                try { allSubmissions = JSON.parse(savedSubs); } catch(e) {}
+            } else {
+                initMockSubmissions();
+            }
+
+            const savedUser = localStorage.getItem('bingo_user');
+            if (savedUser) {
+                try { currentUser = JSON.parse(savedUser); } catch(e) {}
+            }
+        }
+
+        function saveSubmissionsLocally() {
+            localStorage.setItem('bingo_all_submissions', JSON.stringify(allSubmissions));
+        }
+
+        function parseStudentId(idStr) {
+            const str = String(idStr).trim();
+            if (str.length === 4) {
+                const grade = str.substring(0, 1);
+                const classNum = String(parseInt(str.substring(1, 2), 10));
+                const num = parseInt(str.substring(2, 4), 10);
+                return { grade, classNum, num };
+            }
+            return { grade: '1', classNum: '1', num: parseInt(str, 10) || 1 };
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const idInput = document.getElementById('student-id').value;
+            const nameInput = document.getElementById('student-name').value.trim();
+
+            if (!idInput || !nameInput) return;
+
+            const { grade, classNum, num } = parseStudentId(idInput);
+
+            currentUser = {
+                studentId: idInput,
+                name: nameInput,
+                grade: grade,
+                classNum: classNum,
+                num: num,
+                isTeacher: false
+            };
+
+            localStorage.setItem('bingo_user', JSON.stringify(currentUser));
+            document.getElementById('login-modal').classList.add('hidden');
+            updateUserNav();
+            switchTab('bingo');
+            renderBingoBoard();
+            showToast(`${currentUser.classNum}반 ${currentUser.name} 학생 환영합니다! 🎉`);
+        }
+
+        function openTeacherAuthModal() {
+            document.getElementById('teacher-auth-modal').classList.remove('hidden');
+            document.getElementById('teacher-password').focus();
+        }
+
+        function closeTeacherAuthModal() {
+            document.getElementById('teacher-auth-modal').classList.add('hidden');
+            document.getElementById('teacher-password').value = '';
+        }
+
+        function handleTeacherLogin(event) {
+            event.preventDefault();
+            const pwd = document.getElementById('teacher-password').value.trim();
+            
+            if (pwd === '1109') {
+                currentUser = {
+                    studentId: 'TEACHER',
+                    name: '선생님',
+                    isTeacher: true
+                };
+                localStorage.setItem('bingo_user', JSON.stringify(currentUser));
+                closeTeacherAuthModal();
+                document.getElementById('login-modal').classList.add('hidden');
+                updateUserNav();
+                switchTab('teacher');
+                showToast("선생님, 관리자 모드로 접속하였습니다. 👩‍🏫");
+            } else {
+                showToast("⚠️ 비밀번호가 올바르지 않습니다.");
+            }
+        }
+
+        function updateUserNav() {
+            const nav = document.getElementById('user-nav');
+            const badge = document.getElementById('bingo-user-badge');
+
+            const bingoTabBtn = document.getElementById('tab-bingo-btn');
+            const teacherTabBtn = document.getElementById('tab-teacher-btn');
+
+            if (currentUser) {
+                if (currentUser.isTeacher) {
+                    nav.innerHTML = `
+                        <span class="bg-amber-900/60 px-3 py-1 rounded-full text-xs font-bold text-amber-200 border border-amber-400">
+                            👩‍🏫 선생님 모드
+                        </span>
+                        <button onclick="logout()" class="text-xs text-amber-200 underline hover:text-white">로그아웃</button>
+                    `;
+                    if (badge) badge.innerText = "선생님 계정 접속 중";
+
+                    // 선생님 접속 시: 나의 빙고판 숨김, 교사 관리 시스템 표시
+                    if (bingoTabBtn) bingoTabBtn.classList.add('hidden');
+                    if (teacherTabBtn) teacherTabBtn.classList.remove('hidden');
+                } else {
+                    nav.innerHTML = `
+                        <span class="bg-amber-900/60 px-3 py-1 rounded-full text-xs font-bold text-amber-100 border border-amber-400">
+                            ${currentUser.classNum}반 ${currentUser.num}번 ${currentUser.name}
+                        </span>
+                        <button onclick="logout()" class="text-xs text-amber-200 underline hover:text-white">변경</button>
+                    `;
+                    if (badge) badge.innerText = `${currentUser.classNum}반 ${currentUser.num}번 ${currentUser.name}`;
+
+                    // 학생 접속 시: 나의 빙고판 표시, 교사 관리 시스템 숨김
+                    if (bingoTabBtn) bingoTabBtn.classList.remove('hidden');
+                    if (teacherTabBtn) teacherTabBtn.classList.add('hidden');
+                }
+            } else {
+                nav.innerHTML = `
+                    <button onclick="openLoginModal()" class="bg-amber-700 hover:bg-amber-600 px-3 py-1 rounded-lg text-xs font-bold transition">
+                        로그인
+                    </button>
+                `;
+                if (badge) badge.innerText = "학번/이름 입력 필요";
+
+                // 로그인 전 기본 상태
+                if (bingoTabBtn) bingoTabBtn.classList.remove('hidden');
+                if (teacherTabBtn) teacherTabBtn.classList.add('hidden');
+            }
+        }
+
+        function openLoginModal() {
+            document.getElementById('login-modal').classList.remove('hidden');
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('bingo_user');
+            updateUserNav();
+            openLoginModal();
+            renderBingoBoard();
+        }
+
+        function triggerPhotoUpload(missionId) {
+            if (!currentUser) {
+                showToast("로그인 후 사진을 등록해 주세요.");
+                openLoginModal();
+                return;
+            }
+            currentActiveMissionId = missionId;
+            document.getElementById('bingo-photo-input').click();
+        }
+
+        function handlePhotoUpload(event) {
+            const file = event.target.files[0];
+            if (!file || !currentActiveMissionId || !currentUser) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const photoUrl = e.target.result;
+                
+                const existingIndex = allSubmissions.findIndex(s => 
+                    s.studentId === currentUser.studentId && s.missionId === currentActiveMissionId
+                );
+
+                const newSubmission = {
+                    id: Date.now(),
+                    studentId: currentUser.studentId,
+                    studentName: currentUser.name,
+                    classNum: currentUser.classNum,
+                    num: currentUser.num,
+                    missionId: currentActiveMissionId,
+                    imageUrl: photoUrl,
+                    timestamp: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+                    likes: 0,
+                    likedUsers: [],
+                    comments: []
+                };
+
+                if (existingIndex >= 0) {
+                    allSubmissions[existingIndex] = newSubmission;
+                } else {
+                    allSubmissions.push(newSubmission);
+                }
+
+                saveSubmissionsLocally();
+                renderBingoBoard();
+                triggerConfetti();
+                showToast(`미션 ${currentActiveMissionId}번 사진 등록 완료! 📸`);
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+
+        // Delete Photo Function (Accessible by Student or Teacher)
+        function deleteSubmission(subId, event) {
+            if (event) event.stopPropagation();
+
+            const subIndex = allSubmissions.findIndex(s => s.id === subId);
+            if (subIndex === -1) return;
+
+            const sub = allSubmissions[subIndex];
+
+            // Permission Check
+            const canDelete = currentUser && (currentUser.isTeacher || currentUser.studentId === sub.studentId);
+            if (!canDelete) {
+                showToast("사진 삭제 권한이 없습니다.");
+                return;
+            }
+
+            if (confirm(`'${sub.studentName}' 학생의 미션 ${sub.missionId}번 제출 사진을 삭제하시겠습니까?`)) {
+                allSubmissions.splice(subIndex, 1);
+                saveSubmissionsLocally();
+
+                // Live Updates
+                renderBingoBoard();
+                renderPadlet();
+                renderTeacherDashboard();
+
+                // If currently open in inspect student modal, refresh it
+                const detailStudentName = document.getElementById('inspect-student-name')?.innerText;
+                if (detailStudentName && !document.getElementById('student-detail-modal').classList.contains('hidden')) {
+                    inspectStudent(sub.studentName, sub.num, sub.classNum);
+                }
+
+                closeDetailModal();
+                showToast("사진이 성공적으로 삭제되어 '미제출' 상태로 돌아갔습니다.");
+            }
+        }
+
+        function renderBingoBoard() {
+            const board = document.getElementById('bingo-board');
+            if (!board) return;
+
+            board.innerHTML = '';
+
+            const userSubs = currentUser ? allSubmissions.filter(s => s.studentId === currentUser.studentId) : [];
+            const completedMissionIds = new Set(userSubs.map(s => s.missionId));
+
+            DEFAULT_MISSIONS.forEach(mission => {
+                const isDone = completedMissionIds.has(mission.id);
+                const sub = userSubs.find(s => s.missionId === mission.id);
+
+                const tile = document.createElement('div');
+                tile.className = `relative aspect-square rounded-2xl p-2 flex flex-col justify-between shadow-md transition transform active:scale-95 cursor-pointer border-2 overflow-hidden bg-white ${
+                    isDone ? 'border-amber-500 ring-2 ring-amber-400/50' : 'border-amber-200 hover:border-amber-400'
+                }`;
+
+                tile.onclick = () => {
+                    if (isDone && sub) {
+                        openDetailModal(sub);
+                    } else {
+                        triggerPhotoUpload(mission.id);
+                    }
+                };
+
+                tile.innerHTML = `
+                    ${isDone && sub ? `
+                        <img src="${sub.imageUrl}" class="absolute inset-0 w-full h-full object-cover filter brightness-90">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                        <!-- Delete Button for Student's own photo -->
+                        <button onclick="deleteSubmission(${sub.id}, event)" title="사진 삭제 및 재제출" 
+                            class="absolute top-2 right-2 bg-rose-600/90 text-white p-1.5 rounded-full hover:bg-rose-700 z-30 shadow backdrop-blur-xs transition transform hover:scale-110">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    ` : ''}
+
+                    <div class="relative z-10 flex justify-between items-center">
+                        <span class="w-6 h-6 rounded-full ${isDone ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-800'} font-bold text-xs flex items-center justify-center font-jua shadow">
+                            ${mission.id}
+                        </span>
+                        <span class="text-xl">${mission.icon}</span>
+                    </div>
+
+                    <div class="relative z-10 my-auto text-center px-1 font-jua">
+                        <p class="font-bold text-base sm:text-lg md:text-xl leading-tight tracking-tight ${isDone ? 'text-white drop-shadow-md' : 'text-slate-900'}">
+                            ${mission.title}
+                        </p>
+                    </div>
+
+                    <div class="relative z-10 text-center mt-1">
+                        ${isDone ? `
+                            <div class="inline-flex items-center gap-1 bg-amber-500/90 text-white text-xs font-bold px-2 py-0.5 rounded-full shadow backdrop-blur-xs">
+                                <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> 완료 (터치해 삭제/보기)
+                            </div>
+                        ` : `
+                            <span class="text-xs text-amber-800 bg-amber-50 border border-amber-300 px-2.5 py-0.5 rounded-full font-bold shadow-xs">
+                                📷 터치하여 사진 제출
+                            </span>
+                        `}
+                    </div>
+
+                    ${isDone ? `
+                        <div class="absolute inset-0 flex items-center justify-center z-20 pointer-events-none opacity-40">
+                            <div class="w-16 h-16 border-4 border-rose-500/80 rounded-full flex items-center justify-center transform -rotate-12 bg-rose-500/20">
+                                <span class="font-jua text-rose-600 font-extrabold text-sm uppercase">도장쾅</span>
+                            </div>
+                        </div>
+                    ` : ''}
+                `;
+
+                board.appendChild(tile);
+            });
+
+            calculateBingoLines(completedMissionIds);
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function calculateBingoLines(completedSet) {
+            const lines = [
+                [1,2,3], [4,5,6], [7,8,9],
+                [1,4,7], [2,5,8], [3,6,9],
+                [1,5,9], [3,5,7]
+            ];
+
+            let count = 0;
+            lines.forEach(line => {
+                if (line.every(id => completedSet.has(id))) count++;
+            });
+
+            const countEl = document.getElementById('bingo-lines-count');
+            if (countEl) countEl.innerText = `${count} 줄`;
+
+            if (count > previousBingoCount) {
+                triggerConfetti();
+                showToast(`🎉 축하합니다! ${count}줄 빙고 완성! 🎉`);
+            }
+            previousBingoCount = count;
+        }
+
+        function triggerConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 80,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+        }
+
+        function renderPadlet() {
+            const grid = document.getElementById('padlet-grid');
+            const classFilter = document.getElementById('filter-class').value;
+            const missionFilter = document.getElementById('filter-mission').value;
+
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            let filtered = [...allSubmissions];
+
+            if (classFilter !== 'all') {
+                filtered = filtered.filter(s => String(s.classNum) === String(classFilter));
+            }
+
+            if (missionFilter !== 'all') {
+                filtered = filtered.filter(s => String(s.missionId) === String(missionFilter));
+            }
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-slate-400">
+                        <i data-lucide="image-off" class="w-10 h-10 mx-auto mb-2 opacity-50"></i>
+                        <p>등록된 미션 사진이 없습니다.</p>
+                    </div>
+                `;
+                if (window.lucide) lucide.createIcons();
+                return;
+            }
+
+            filtered.forEach(sub => {
+                const mission = DEFAULT_MISSIONS.find(m => m.id === sub.missionId);
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-2xl border border-amber-200 overflow-hidden shadow-sm hover:shadow-md transition cursor-pointer flex flex-col justify-between";
+                card.onclick = () => openDetailModal(sub);
+
+                const commentCount = (sub.comments || []).length;
+                const likeCount = sub.likes || 0;
+
+                card.innerHTML = `
+                    <div class="relative aspect-square bg-slate-100 overflow-hidden">
+                        <img src="${sub.imageUrl}" class="w-full h-full object-cover">
+                        <span class="absolute top-2 left-2 bg-amber-800/80 text-white font-bold text-xs px-2 py-0.5 rounded-full backdrop-blur-xs">
+                            ${sub.missionId}. ${mission ? mission.title : '미션'}
+                        </span>
+                    </div>
+                    <div class="p-3 space-y-1">
+                        <div class="font-bold text-slate-900 text-sm flex items-center justify-between">
+                            <span>${sub.classNum}반 ${sub.studentName}</span>
+                            <span class="text-[10px] text-slate-400 font-normal">${sub.timestamp || ''}</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-xs text-slate-500 pt-1 border-t border-slate-100">
+                            <span class="flex items-center gap-1 text-rose-500"><i data-lucide="heart" class="w-3.5 h-3.5 fill-rose-500"></i> ${likeCount}</span>
+                            <span class="flex items-center gap-1 text-slate-600"><i data-lucide="message-circle" class="w-3.5 h-3.5"></i> ${commentCount}</span>
+                        </div>
+                    </div>
+                `;
+
+                grid.appendChild(card);
+            });
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function renderTeacherDashboard() {
+            const tableBody = document.getElementById('teacher-student-table-body');
+            const title = document.getElementById('teacher-current-class-title');
+            const badge = document.getElementById('teacher-class-summary-badge');
+
+            tableBody.innerHTML = '';
+            title.innerText = `📌 ${currentTeacherClass}반 학생 제출 현황 (교사 관리 시스템)`;
+
+            const nameList = rosters[currentTeacherClass] || [];
+            const classSubmissions = allSubmissions.filter(s => String(s.classNum) === String(currentTeacherClass));
+
+            let submittedCount = 0;
+
+            if (nameList.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center py-8 text-slate-400">
+                            등록된 ${currentTeacherClass}반 학생 명단이 없습니다.
+                        </td>
+                    </tr>
+                `;
+                badge.innerText = `명단 미등록`;
+                return;
+            }
+
+            nameList.forEach((name, idx) => {
+                const studentNo = idx + 1;
+                const studentSubs = classSubmissions.filter(s => s.studentName === name || (s.num === studentNo));
+                const photoCount = studentSubs.length;
+
+                if (photoCount > 0) submittedCount++;
+
+                const studentMissionSet = new Set(studentSubs.map(s => s.missionId));
+                const lines = [
+                    [1,2,3], [4,5,6], [7,8,9],
+                    [1,4,7], [2,5,8], [3,6,9],
+                    [1,5,9], [3,5,7]
+                ];
+                let lineCount = 0;
+                lines.forEach(line => {
+                    if (line.every(id => studentMissionSet.has(id))) lineCount++;
+                });
+
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-amber-50/50 transition";
+
+                tr.innerHTML = `
+                    <td class="py-3 px-3 font-bold text-slate-600">${studentNo}번</td>
+                    <td class="py-3 px-3 font-bold text-slate-900">${name}</td>
+                    <td class="py-3 px-3 text-center">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-bold ${photoCount > 0 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-400'}">
+                            ${photoCount} / 9 개
+                        </span>
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                        <span class="font-bold font-jua ${lineCount > 0 ? 'text-amber-600' : 'text-slate-300'}">
+                            🏆 ${lineCount} 줄
+                        </span>
+                    </td>
+                    <td class="py-3 px-3 text-center">
+                        ${photoCount > 0 
+                            ? `<span class="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded text-[11px]">제출 완료</span>` 
+                            : `<span class="bg-rose-100 text-rose-700 font-bold px-2 py-0.5 rounded text-[11px]">미제출</span>`}
+                    </td>
+                    <td class="py-3 px-3 text-right">
+                        <button onclick="inspectStudent('${name}', ${studentNo}, '${currentTeacherClass}')" 
+                            class="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded text-xs transition shadow-xs">
+                            상세보기 / 사진삭제
+                        </button>
+                    </td>
+                `;
+
+                tableBody.appendChild(tr);
+            });
+
+            const percent = nameList.length > 0 ? Math.round((submittedCount / nameList.length) * 100) : 0;
+            badge.innerText = `참여율 ${percent}% (${submittedCount}/${nameList.length}명)`;
+        }
+
+        function downloadCSV() {
+            let csvContent = "\uFEFF"; // UTF-8 BOM for Excel Korean support
+            csvContent += "반,번호,이름,제출사진수,완성빙고줄수,제출상태\n";
+
+            ['1', '3', '4', '7'].forEach(cNum => {
+                const nameList = rosters[cNum] || [];
+                const classSubs = allSubmissions.filter(s => String(s.classNum) === String(cNum));
+
+                nameList.forEach((name, idx) => {
+                    const studentNo = idx + 1;
+                    const studentSubs = classSubs.filter(s => s.studentName === name || s.num === studentNo);
+                    const photoCount = studentSubs.length;
+
+                    const studentMissionSet = new Set(studentSubs.map(s => s.missionId));
+                    const lines = [[1,2,3], [4,5,6], [7,8,9], [1,4,7], [2,5,8], [3,6,9], [1,5,9], [3,5,7]];
+                    let lineCount = 0;
+                    lines.forEach(line => {
+                        if (line.every(id => studentMissionSet.has(id))) lineCount++;
+                    });
+
+                    const status = photoCount > 0 ? "제출완료" : "미제출";
+                    csvContent += `${cNum}반,${studentNo},${name},${photoCount},${lineCount},${status}\n`;
+                });
+            });
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `가을_체험학습_포토빙고_제출현황_${new Date().toISOString().slice(0,10)}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast("📊 CSV 데이터 엑셀 파일이 다운로드되었습니다.");
+        }
+
+        function inspectStudent(name, num, classNum) {
+            document.getElementById('inspect-student-badge').innerText = `${classNum}반 ${num}번`;
+            document.getElementById('inspect-student-name').innerText = name;
+
+            const studentSubs = allSubmissions.filter(s => String(s.classNum) === String(classNum) && (s.studentName === name || s.num === num));
+            document.getElementById('inspect-photo-count').innerText = studentSubs.length;
+
+            const grid = document.getElementById('inspect-grid');
+            grid.innerHTML = '';
+
+            DEFAULT_MISSIONS.forEach(m => {
+                const sub = studentSubs.find(s => s.missionId === m.id);
+                const tile = document.createElement('div');
+                tile.className = "aspect-square rounded-xl overflow-hidden border border-slate-200 bg-slate-50 relative flex flex-col justify-between p-1.5 shadow-xs";
+
+                if (sub) {
+                    tile.innerHTML = `
+                        <img src="${sub.imageUrl}" class="absolute inset-0 w-full h-full object-cover">
+                        <div class="relative z-10 flex justify-between items-center">
+                            <span class="bg-amber-800 text-white font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center">${m.id}</span>
+                            <button onclick="deleteSubmission(${sub.id}, event)" title="사진 삭제" 
+                                class="bg-rose-600 text-white p-1 rounded-full hover:bg-rose-700 shadow transition transform hover:scale-110">
+                                <i data-lucide="trash-2" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+                        <div class="relative z-10 bg-black/60 text-white text-[9px] p-1 rounded backdrop-blur-xs truncate">${m.title}</div>
+                    `;
+                    tile.onclick = () => openDetailModal(sub);
+                    tile.classList.add('cursor-pointer');
+                } else {
+                    tile.innerHTML = `
+                        <span class="bg-slate-200 text-slate-500 font-bold text-[10px] w-4 h-4 rounded-full flex items-center justify-center">${m.id}</span>
+                        <p class="text-[9px] text-slate-400 font-bold text-center line-clamp-2">${m.title}</p>
+                        <span class="text-[9px] text-rose-400 text-right">미제출</span>
+                    `;
+                }
+
+                grid.appendChild(tile);
+            });
+
+            if (window.lucide) lucide.createIcons();
+            document.getElementById('student-detail-modal').classList.remove('hidden');
+        }
+
+        function openDetailModal(sub) {
+            currentDetailSubmission = sub;
+            const mission = DEFAULT_MISSIONS.find(m => m.id === sub.missionId);
+
+            document.getElementById('detail-img').src = sub.imageUrl;
+            document.getElementById('detail-student').innerText = `${sub.classNum}반 ${sub.studentName}`;
+            document.getElementById('detail-mission').innerText = `${sub.missionId}. ${mission ? mission.title : '미션'}`;
+            document.getElementById('detail-time').innerText = sub.timestamp || '';
+            document.getElementById('like-count').innerText = sub.likes || 0;
+
+            // Delete Button Container
+            const delContainer = document.getElementById('detail-delete-btn-container');
+            const canDelete = currentUser && (currentUser.isTeacher || currentUser.studentId === sub.studentId);
+
+            if (canDelete) {
+                delContainer.innerHTML = `
+                    <button onclick="deleteSubmission(${sub.id}, event)" class="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs transition flex items-center gap-1 shadow">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> 사진 삭제
+                    </button>
+                `;
+            } else {
+                delContainer.innerHTML = '';
+            }
+
+            renderComments();
+            document.getElementById('detail-modal').classList.remove('hidden');
+            if (window.lucide) lucide.createIcons();
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detail-modal').classList.add('hidden');
+            currentDetailSubmission = null;
+        }
+
+        function toggleLikeCurrentPhoto() {
+            if (!currentDetailSubmission) return;
+            currentDetailSubmission.likes = (currentDetailSubmission.likes || 0) + 1;
+            document.getElementById('like-count').innerText = currentDetailSubmission.likes;
+            saveSubmissionsLocally();
+            renderPadlet();
+        }
+
+        function renderComments() {
+            if (!currentDetailSubmission) return;
+            const container = document.getElementById('comments-list');
+            container.innerHTML = '';
+
+            const comments = currentDetailSubmission.comments || [];
+            if (comments.length === 0) {
+                container.innerHTML = `<p class="text-slate-400 text-[11px] italic">첫 응원 댓글을 작성해 보세요!</p>`;
+                return;
+            }
+
+            comments.forEach(c => {
+                const div = document.createElement('div');
+                div.className = "bg-slate-50 p-1.5 rounded-lg border border-slate-100 flex justify-between";
+                div.innerHTML = `
+                    <span class="font-bold text-amber-900">${c.author}:</span>
+                    <span class="text-slate-700">${c.text}</span>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function addComment(event) {
+            event.preventDefault();
+            if (!currentDetailSubmission) return;
+            const input = document.getElementById('comment-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const authorName = currentUser ? `${currentUser.name}` : '익명';
+            if (!currentDetailSubmission.comments) currentDetailSubmission.comments = [];
+            currentDetailSubmission.comments.push({ author: authorName, text: text });
+
+            input.value = '';
+            saveSubmissionsLocally();
+            renderComments();
+            renderPadlet();
+        }
+
+        function selectTeacherClass(classNum) {
+            currentTeacherClass = String(classNum);
+            document.querySelectorAll('.tclass-btn').forEach(b => {
+                b.classList.remove('bg-amber-600');
+                b.classList.add('bg-slate-700');
+            });
+            const activeBtn = document.getElementById(`btn-tclass-${currentTeacherClass}`);
+            if (activeBtn) activeBtn.classList.replace('bg-slate-700', 'bg-amber-600');
+
+            renderTeacherDashboard();
+        }
+
+        function openRosterModal() {
+            document.getElementById('roster-input-1').value = (rosters['1'] || []).join(', ');
+            document.getElementById('roster-input-3').value = (rosters['3'] || []).join(', ');
+            document.getElementById('roster-input-4').value = (rosters['4'] || []).join(', ');
+            document.getElementById('roster-input-7').value = (rosters['7'] || []).join(', ');
+            document.getElementById('roster-modal').classList.remove('hidden');
+        }
+
+        function closeRosterModal() {
+            document.getElementById('roster-modal').classList.add('hidden');
+        }
+
+        function closeStudentDetailModal() {
+            document.getElementById('student-detail-modal').classList.add('hidden');
+        }
+
+        function saveRosters() {
+            const parseList = (str) => str.split(/[\n,]/).map(s => s.trim()).filter(Boolean);
+            rosters['1'] = parseList(document.getElementById('roster-input-1').value);
+            rosters['3'] = parseList(document.getElementById('roster-input-3').value);
+            rosters['4'] = parseList(document.getElementById('roster-input-4').value);
+            rosters['7'] = parseList(document.getElementById('roster-input-7').value);
+
+            localStorage.setItem('bingo_rosters', JSON.stringify(rosters));
+            closeRosterModal();
+            renderTeacherDashboard();
+            showToast("학급 명단이 성공적으로 저장되었습니다.");
+        }
+
+        function switchTab(tab) {
+            const bingoBtn = document.getElementById('tab-bingo-btn');
+            const padletBtn = document.getElementById('tab-padlet-btn');
+            const teacherBtn = document.getElementById('tab-teacher-btn');
+
+            const bingoView = document.getElementById('view-bingo');
+            const padletView = document.getElementById('view-padlet');
+            const teacherView = document.getElementById('view-teacher');
+
+            [bingoBtn, padletBtn, teacherBtn].forEach(b => {
+                b.className = "flex-1 py-2.5 px-3 text-center rounded-lg font-bold text-sm text-amber-800 hover:bg-amber-100/50 transition flex items-center justify-center gap-1.5";
+            });
+
+            [bingoView, padletView, teacherView].forEach(v => v.classList.add('hidden'));
+
+            if (tab === 'bingo') {
+                bingoBtn.className = "flex-1 py-2.5 px-3 text-center rounded-lg font-bold text-sm transition flex items-center justify-center gap-1.5 bg-amber-600 text-white shadow";
+                bingoView.classList.remove('hidden');
+            } else if (tab === 'padlet') {
+                padletBtn.className = "flex-1 py-2.5 px-3 text-center rounded-lg font-bold text-sm transition flex items-center justify-center gap-1.5 bg-amber-600 text-white shadow";
+                padletView.classList.remove('hidden');
+                renderPadlet();
+            } else if (tab === 'teacher') {
+                if (!currentUser || !currentUser.isTeacher) {
+                    openTeacherAuthModal();
+                    return;
+                }
+                teacherBtn.className = "flex-1 py-2.5 px-3 text-center rounded-lg font-bold text-sm transition flex items-center justify-center gap-1.5 bg-amber-600 text-white shadow";
+                teacherView.classList.remove('hidden');
+                renderTeacherDashboard();
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            if (!toast || !toastMsg) return;
+
+            toastMsg.innerText = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadRostersFromStorage();
+            loadState();
+            updateUserNav();
+
+            if (currentUser && currentUser.isTeacher) {
+                switchTab('teacher');
+            } else {
+                switchTab('bingo');
+                renderBingoBoard();
+            }
+
+            const classSelect = document.getElementById('filter-class');
+            if (classSelect) {
+                ['1', '3', '4', '7'].forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c;
+                    opt.innerText = `${c}반 보기`;
+                    classSelect.appendChild(opt);
+                });
+            }
+
+            const missionSelect = document.getElementById('filter-mission');
+            if (missionSelect) {
+                DEFAULT_MISSIONS.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.innerText = `${m.id}. ${m.title}`;
+                    missionSelect.appendChild(opt);
+                });
+            }
+
+            if (window.lucide) lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
